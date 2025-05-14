@@ -1,0 +1,26 @@
+{
+  "name": "photobooth-bridge",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.9.0",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "ffmpeg-static": "^5.2.0",
+    "form-data": "^4.0.2",
+    "multer": "^1.4.5-lts.2",
+    "node-webcam": "^0.8.2",
+    "pdf-to-printer": "^5.6.0",
+    "printer": "^0.4.0",
+    "sharp": "^0.34.1",
+    "socket.io": "^4.8.1"
+  },
+  "description": ""
+}
