@@ -33,47 +33,45 @@ function getLatestPhoto(folderPath) {
 
 // Endpoint untuk ambil foto DSLR via DigiCamControl
 app.post('/take-photo', async (req, res) => {
-  const { order_id } = req.body;
-  if (!order_id) {
-    return res.status(400).json({ message: 'order_id tidak boleh kosong' });
+  const { order_id, total_slot } = req.body;
+  if (!order_id || !total_slot) {
+    return res.status(400).json({ message: 'order_id dan total_slot wajib' });
   }
+
+  const folderPath = path.join(process.env.HOMEPATH, 'Pictures', 'digiCamControl');
+  const results = [];
 
   try {
-    // Trigger ambil foto dari DigiCamControl
-    await axios.get('http://localhost:5513/?action=capture');
-    console.log('Foto berhasil diambil dengan kamera DSLR');
+    for (let i = 1; i <= total_slot; i++) {
+      await axios.get('http://localhost:5513/?action=capture');
+      await new Promise(resolve => setTimeout(resolve, 3000)); // Delay antara foto
 
-    // Tunggu beberapa detik agar file tersimpan
-    await new Promise(resolve => setTimeout(resolve, 3000));
+      const latestPhoto = getLatestPhoto(folderPath);
+      if (!latestPhoto) throw new Error(`Foto ke-${i} tidak ditemukan`);
 
-    const folderPath = path.join(process.env.HOMEPATH, 'Pictures', 'digiCamControl');
-    const latestPhoto = getLatestPhoto(folderPath);
-    if (!latestPhoto) throw new Error('Tidak menemukan file foto dari kamera');
+      const formData = new FormData();
+      formData.append('order_id', order_id);
+      formData.append('frame_id', req.body.frame_id); // Penting
+      formData.append(`photo_${i}`, fs.createReadStream(latestPhoto), {
+        filename: `slot${i}.jpg`,
+        contentType: 'image/jpeg',
+      });
 
-    const filename = path.basename(latestPhoto);
+      const upload = await axios.post('http://127.0.0.1:8000/photo-upload', formData, {
+        headers: formData.getHeaders(),
+      });
 
-    // Kirim ke Laravel
-    const formData = new FormData();
-    formData.append('order_id', order_id);
-    formData.append('photo', fs.createReadStream(latestPhoto), {
-      filename,
-      contentType: 'image/jpeg'
-    });
+      results.push({ i, message: 'Foto berhasil dikirim' });
+    }
 
-    const response = await axios.post('http://127.0.0.1:8000/api/photo-upload', formData, {
-      headers: formData.getHeaders()
-    });
+    res.json({ message: 'Semua foto berhasil diambil dan dikirim', results });
 
-    return res.json({
-      message: 'Foto berhasil diambil & dikirim ke Laravel',
-      filename
-    });
-
-  } catch (error) {
-    console.error('Gagal proses foto:', error.message);
-    return res.status(500).json({ message: 'Gagal proses foto', error: error.message });
+  } catch (err) {
+    console.error('Gagal:', err.message);
+    res.status(500).json({ message: 'Gagal dalam proses foto', error: err.message });
   }
 });
+
 
 // Fungsi bantu untuk mencetak foto
 function print(filePath) {
